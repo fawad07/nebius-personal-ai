@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#f3f6f4; --surface:#fff; --surface-2:#eaefec; --ink:#172226;
+    --muted:#576a6e; --hairline:#dbe3e0; --accent:#0c8a95; --accent-ink:#0a6b74;
+    --user:#0c8a95; --bot:#3a4a4e; --amber:#b9741b; --danger:#c0392b;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0e1417; --surface:#151d21; --surface-2:#1a242a; --ink:#e8eeef;
+    --muted:#93a4a8; --hairline:#253238; --accent:#35c3ce; --accent-ink:#82dbe2;
+    --user:#35c3ce; --bot:#c3d0d2; --amber:#e2a24c; --danger:#e06b5e;
+  }}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55}
+  .app{max-width:900px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-size:1.35rem;margin:0;font-weight:600;letter-spacing:-.01em}
+  .conn{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--muted);
+    display:flex;align-items:center;gap:7px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:#2ea043}.dot.off{background:var(--danger)}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:680px){.grid{grid-template-columns:270px 1fr}}
+  .panel{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px}
+
+  /* State machine */
+  .states{display:flex;flex-direction:column;gap:8px;margin:0 0 18px}
+  .state{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;
+    font-family:"IBM Plex Mono",monospace;font-size:.82rem;color:var(--muted);
+    background:var(--surface-2);opacity:.55;transition:opacity .15s,color .15s}
+  .state .mk{width:9px;height:9px;border-radius:2px;background:currentColor;flex:none}
+  .state.active{opacity:1;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+  .meta{font-family:"IBM Plex Mono",monospace;font-size:.78rem;color:var(--muted);
+    display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:8px}
+  .meta b{color:var(--ink);font-weight:500}
+
+  /* Conversation */
+  .log{min-height:280px;max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;flex-direction:column;gap:2px}
+  .row .who{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted)}
+  .row.user .who{color:var(--user)} .row.bot .who{color:var(--accent-ink)}
+  .bubble{padding:10px 13px;border-radius:11px;background:var(--surface-2);max-width:90%}
+  .row.user .bubble{align-self:flex-start;border:1px solid color-mix(in srgb,var(--user) 30%,transparent)}
+  .row.bot .bubble{align-self:flex-start}
+  .bubble.partial{opacity:.6;font-style:italic}
+  .empty{color:var(--muted);font-size:.9rem;text-align:center;margin-top:60px}
+
+  /* Controls */
+  .controls{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;border:1px solid var(--hairline);background:var(--surface);color:var(--ink);
+    border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:500}
+  button:hover{border-color:var(--accent)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.mic{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.mic.rec{background:var(--danger);border-color:var(--danger);animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{opacity:.7}}
+  @media(prefers-reduced-motion:reduce){button.mic.rec{animation:none}}
+  form{display:flex;gap:8px;flex:1;min-width:220px}
+  input[type=text]{flex:1;font:inherit;padding:9px 12px;border-radius:9px;
+    border:1px solid var(--hairline);background:var(--surface);color:var(--ink)}
+  input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .hint{color:var(--muted);font-size:.8rem;margin-top:10px}
+  .mode{font-family:"IBM Plex Mono",monospace;font-size:.72rem;padding:2px 8px;border-radius:20px;
+    background:var(--surface-2);color:var(--muted);border:1px solid var(--hairline)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Voice Agent <span class="mode" id="mode">connecting…</span></h1>
+    <div class="conn"><span class="dot" id="dot"></span><span id="connText">connecting</span></div>
+  </header>
+
+  <div class="grid">
+    <aside class="panel">
+      <div class="states" id="states">
+        <div class="state" data-s="listening"><span class="mk"></span>listening</div>
+        <div class="state" data-s="thinking"><span class="mk"></span>thinking</div>
+        <div class="state" data-s="speaking"><span class="mk"></span>speaking</div>
+        <div class="state" data-s="interrupted"><span class="mk"></span>interrupted</div>
+      </div>
+      <div class="meta">
+        <span>speaker</span><b id="mSpeaker">—</b>
+        <span>emotion</span><b id="mEmotion">—</b>
+        <span>mood</span><b id="mMood">—</b>
+      </div>
+    </aside>
+
+    <main class="panel">
+      <div class="log" id="log"><div class="empty" id="empty">Say something, or type below to test the pipeline.</div></div>
+      <div class="controls">
+        <button class="mic" id="mic" type="button">🎙 Start talking</button>
+        <form id="textForm" autocomplete="off">
+          <input type="text" id="textInput" placeholder="Type a message…" aria-label="message">
+          <button type="submit">Send</button>
+        </form>
+      </div>
+      <p class="hint" id="hint">Mic streams 16 kHz audio to the pipeline. Text works in both mock and real mode.</p>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const wsPort = params.get("ws") || "8765";
+  const wsURL = `ws://${location.hostname || "127.0.0.1"}:${wsPort}`;
+
+  let ws, recording = false, micCtx, micNode, micStream;
+  let playCtx, nextTime = 0;
+
+  // ---- connection ----
+  function connect(){
+    ws = new WebSocket(wsURL);
+    ws.binaryType = "arraybuffer";
+    ws.onopen = () => setConn(true);
+    ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
+    ws.onerror = () => setConn(false);
+    ws.onmessage = onMessage;
+  }
+  function setConn(on){
+    $("dot").className = "dot " + (on ? "on" : "off");
+    $("connText").textContent = on ? "connected" : "disconnected";
+  }
+
+  function onMessage(ev){
+    if (ev.data instanceof ArrayBuffer){ playPCM(new Float32Array(ev.data)); return; }
+    let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+    switch(msg.type){
+      case "state": setState(msg.state); break;
+      case "transcript": showUser(msg.text, !msg.final); break;
+      case "reply": showBot(msg.text); if(msg.mood) $("mMood").textContent = msg.mood; break;
+      case "meta":
+        if(msg.speaker) $("mSpeaker").textContent = msg.speaker;
+        if(msg.emotion) $("mEmotion").textContent = msg.emotion;
+        if(msg.mood) $("mMood").textContent = msg.mood;
+        break;
+      case "info": $("mode").textContent = msg.message || "ready"; break;
+    }
+  }
+
+  // ---- UI ----
+  function setState(s){
+    document.querySelectorAll(".state").forEach(el =>
+      el.classList.toggle("active", el.dataset.s === s));
+  }
+  function clearEmpty(){ const e = $("empty"); if(e) e.remove(); }
+  let partialEl = null;
+  function showUser(text, partial){
+    clearEmpty();
+    if(partial){
+      if(!partialEl){ partialEl = addRow("user", "you", text, true); }
+      else partialEl.querySelector(".bubble").textContent = text;
+    } else {
+      if(partialEl){ partialEl.querySelector(".bubble").textContent = text;
+        partialEl.querySelector(".bubble").classList.remove("partial"); partialEl = null; }
+      else addRow("user", "you", text, false);
+    }
+  }
+  function showBot(text){ clearEmpty(); addRow("bot", "agent", text, false); }
+  function addRow(cls, who, text, partial){
+    const row = document.createElement("div"); row.className = "row " + cls;
+    const w = document.createElement("div"); w.className = "who"; w.textContent = who;
+    const b = document.createElement("div"); b.className = "bubble" + (partial ? " partial" : "");
+    b.textContent = text;
+    row.append(w, b); $("log").append(row); $("log").scrollTop = $("log").scrollHeight;
+    return row;
+  }
+
+  // ---- text path ----
+  $("textForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("textInput").value.trim(); if(!t || !ws || ws.readyState !== 1) return;
+    ws.send(JSON.stringify({type:"text", text:t}));
+    $("textInput").value = "";
+  });
+
+  // ---- mic path ----
+  $("mic").addEventListener("click", () => recording ? stopMic() : startMic());
+  async function startMic(){
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1}});
+    }catch(err){ $("hint").textContent = "Mic access denied: " + err.message; return; }
+    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = micCtx.createMediaStreamSource(micStream);
+    micNode = micCtx.createScriptProcessor(4096, 1, 1);
+    src.connect(micNode); micNode.connect(micCtx.destination);
+    micNode.onaudioprocess = e => {
+      if(!ws || ws.readyState !== 1) return;
+      const down = downsample(e.inputBuffer.getChannelData(0), micCtx.sampleRate, 16000);
+      ws.send(down.buffer);
+    };
+    recording = true;
+    $("mic").classList.add("rec"); $("mic").textContent = "◼ Stop";
+  }
+  function stopMic(){
+    recording = false; $("mic").classList.remove("rec"); $("mic").textContent = "🎙 Start talking";
+    if(micNode) micNode.disconnect(); if(micStream) micStream.getTracks().forEach(t => t.stop());
+    if(micCtx) micCtx.close();
+  }
+  function downsample(input, inRate, outRate){
+    if(inRate === outRate) return Float32Array.from(input);
+    const ratio = inRate / outRate, outLen = Math.floor(input.length / ratio);
+    const out = new Float32Array(outLen);
+    for(let i=0;i<outLen;i++){
+      const idx = i*ratio, i0 = Math.floor(idx), i1 = Math.min(i0+1, input.length-1);
+      out[i] = input[i0]*(1-(idx-i0)) + input[i1]*(idx-i0);
+    }
+    return out;
+  }
+
+  // ---- playback ----
+  function playPCM(f32){
+    if(!playCtx) playCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!f32.length) return;
+    const buf = playCtx.createBuffer(1, f32.length, 16000);
+    buf.copyToChannel(f32, 0);
+    const node = playCtx.createBufferSource(); node.buffer = buf; node.connect(playCtx.destination);
+    const t = Math.max(playCtx.currentTime, nextTime); node.start(t); nextTime = t + buf.duration;
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>

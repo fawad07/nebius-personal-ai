@@ -1,0 +1,18 @@
+openai>=1.14.0
+TTS==0.22.0
+faster-whisper>=0.10.0
+sounddevice>=0.4.6
+soundfile>=0.12.1
+# NOTE: TTS==0.22.0 pins torch to 2.2.2. speechbrain 1.x expects the torch>=2.4
+# autocast API (torch.amp.custom_fwd); on 2.2.2 this is bridged by
+# utils/torch_compat.py. A clean alternative is speechbrain<1.0.
+torch>=2.1.0
+torchaudio>=2.1.0
+speechbrain>=0.5.14
+transformers==4.36.2
+pyyaml>=6.0.1
+rich>=13.7.0
+websockets>=12,<14
+onnxruntime>=1.17.0
+requests>=2.31.0
+pytest>=8.0.0

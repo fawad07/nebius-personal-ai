@@ -1,0 +1,31 @@
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/*.log
+
+# Runtime data — voice biometrics & user profiles are sensitive; never commit
+data/
+!data/.gitkeep
+
+# Downloaded / large model weights
+models/
+!models/.gitkeep
+
+# OS cruft
+.DS_Store

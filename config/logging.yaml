@@ -1,0 +1,53 @@
+version: 1
+
+formatters:
+  standard:
+    format: "%(asctime)s [%(levelname)s] %(name)s [session=%(session_id)s turn=%(turn_id)s]: %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+    stream: ext://sys.stdout
+
+loggers:
+  audio:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  stt:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  ser:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  speaker:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  tts:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  conversation:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  session_manager:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+root:
+  level: INFO
+  handlers: [console]
+

@@ -1,0 +1,115 @@
+audio:
+  rate: 16000
+  channels: 1
+  chunk_size: 4096
+  device_index: null
+
+stt:
+  model_path: "medium"
+  language: "en"
+  use_gpu: false
+
+ser:
+  model_path: "models/ser/emotion_model.pth"
+  sample_rate: 16000
+
+speaker:
+  embed_model_path: "models/speaker/ecapa-tdnn"
+  threshold: 0.75
+  profiles_path: "data/speaker_profiles/"
+  profile_update: true       # drift-adapt known speakers' profiles at runtime
+  profile_update_rate: 0.15
+  drift_threshold: 0.65
+  auto_enroll: false         # opt-in: auto-create a profile for each new speaker
+
+vad:
+  sample_rate: 16000
+  threshold: 0.5
+
+tts:
+  model_path: "tts_models/multilingual/multi-dataset/xtts_v2"
+  voice_profile_path: "data/samples/agent_voice.wav"
+  sample_rate: 16000
+
+llm:
+  # Nebius Token Factory serves an OpenAI-compatible Chat Completions API, so
+  # the existing OpenAI-compatible client points at it with config alone — no
+  # new client code. This satisfies the hackathon's mandatory
+  # "NVIDIA open model served on Nebius" requirement.
+  provider: "openai_compatible"
+  # NVIDIA Nemotron 3 Nano — fast/cheap, best default for a low-latency voice
+  # loop (track guidance: Nano/Super for everyday calls, Ultra for heavy
+  # reasoning). Confirmed present in this account's catalog.
+  #   Swap in for deeper reasoning (higher latency + cost):
+  #     nvidia/nemotron-3-super-120b-a12b     (Super)
+  #     nvidia/Nemotron-3-Ultra-550b-a55b     (Ultra)
+  model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+  base_url: "https://api.tokenfactory.nebius.com/v1/"  # Nebius Token Factory OpenAI-compatible endpoint (confirmed)
+  max_calls_per_minute: 30
+  # Per-SESSION token ceiling (resets on each restart). Moderate: ~25 turns/run
+  # — high enough not to interrupt a real conversation, low enough to catch a
+  # runaway/bug. Raise for a long demo; lower for tighter dev cost control.
+  max_tokens_budget: 50000
+  # API key is read from the environment (NEBIUS_API_KEY / OPENAI_API_KEY); see
+  # .env.example. Never commit the key.
+  #
+  # ⚠️ COST NOTE — this budget is PER SESSION only; it does NOT cap total spend
+  # across many runs or many demo visitors. Your real card-level safety net is
+  # an account spend limit in the Nebius console:
+  #   Nebius Token Factory console → Billing → set a spending/budget limit,
+  #   and prefer running on Builder Program credits. Do this before exposing any
+  #   public demo URL, since each visitor is a fresh session (fresh budget).
+  #   Tip: use Nemotron Nano for everyday turns (cheaper), Super for reasoning.
+  #
+  # To develop offline against a local model instead (no Nebius key needed):
+  #   provider: "ollama"  model: "llama3.2"   (base_url defaults to :11434/v1)
+
+conversation:
+  persona_style: "supportive, calm, emotionally aware"
+  boundaries: "You maintain healthy emotional boundaries."
+  tone_map:
+    neutral: "balanced and clear"
+    calm: "soft and steady"
+    sad: "gentle and warm"
+    excited: "energetic and upbeat"
+    angry: "calm and de-escalating"
+    stressed: "reassuring and steady"
+
+metrics:
+  latency_tracing: true      # log per-turn listen/think/speak latency + a shutdown summary
+  log_each_turn: true        # false = only the aggregate summary at shutdown
+
+tools:
+  enabled: true              # let the model call built-in tools (time, remember/recall facts)
+  facts_db_path: "data/facts.db"  # gitignored; stores remembered personal facts
+  automation: true           # graft the offline_assistant automation suite (files/notes/system/activity/code-check)
+
+voice_clone:
+  enabled: true                    # expose the synthesize_in_voice tool (registered voices only)
+  voices_path: "data/voices"       # consented reference voices (register via scripts/clone_voice.py)
+  recordings_path: "data/recordings"  # generated WAV recordings (gitignored)
+
+privacy:
+  encrypt_embeddings: true   # encrypt voice biometrics at rest (stdlib HMAC-based)
+  key_path: "data/keyfile"   # generated with 0600 perms if missing; or set $VOICE_AGENT_SECRET
+  require_consent: true      # don't store a voiceprint without consent
+  auto_enroll_consent: false # blanket consent for auto-enrolled strangers (off by default)
+
+memory:
+  enabled: true              # persist conversation turns across restarts (SQLite)
+  db_path: "data/memory.db"  # gitignored; contains transcripts (personal data)
+  history_limit: 20          # prior turns loaded back into context on startup
+
+input:
+  mode: "vad"                 # "vad" = always listening; "push_to_talk" = press Enter to talk
+  ptt_prompt: "[press Enter to talk] "
+
+session:
+  loop_delay_ms: 10
+  token_buffer_min_chars: 12
+  token_buffer_max_chars: 80
+  silence_duration_ms: 800
+  max_utterance_ms: 15000
+  barge_in_speech_chunks: 2   # consecutive speech chunks required to accept a barge-in
+  barge_in_enabled: null      # null = auto (on for vad, off for push_to_talk); true/false to force
+

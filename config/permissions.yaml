@@ -1,0 +1,34 @@
+# Tool permissions policy. Consumed by core/safety.py.
+
+# Allowlist: a tool call must appear here or it is refused before it
+# reaches the automation layer. Add entries as automation modules grow.
+allowed_tools:
+  - list_files
+  - tree
+  - read_file
+  - write_file
+  - delete_file
+  - system_info
+  - activity_report
+  - save_note
+  - list_notes
+  - search_notes
+  - check_code
+  # web_search leaves the machine. The allowlist admits the tool, but it only
+  # works when search.enabled is on AND the user approves each query; it is
+  # not even advertised to the model when search is off.
+  - web_search
+
+# Sensitive tools additionally require a fresh admin-presence check
+# (core/agent.py calls auth.require_admin() before executing these).
+sensitive_tools:
+  - delete_file
+  - system_shutdown
+  - install_app
+  - modify_permissions
+
+# Write/delete are confined to this workspace. Reading, listing and tree
+# span the whole project root (see automation/files.py) — the assistant can
+# browse and read the codebase, but never modify or delete it.
+allowed_workspace_paths:
+  - "data/workspace/"
