@@ -45,21 +45,27 @@ load_env() {
 }
 
 activate_venv() {
-    if [ -d "venv" ]; then
-        echo "[launcher] Activating virtual environment"
+    if [ -d ".venv" ]; then
+        echo "[launcher] Activating virtual environment (.venv)"
+        # shellcheck disable=SC1091
+        source .venv/bin/activate
+    elif [ -d "venv" ]; then
+        echo "[launcher] Activating virtual environment (venv)"
         # shellcheck disable=SC1091
         source venv/bin/activate
     else
-        echo "[launcher] No virtual environment found (venv/)."
+        echo "[launcher] No virtual environment found (.venv/ or venv/)."
     fi
 }
 
 # Read a top-level "key: value" string from config/settings.yaml (best effort).
+# Strips an inline "# comment" and surrounding quotes so a commented value line
+# (e.g. base_url: "https://..."  # note) yields just the value.
 config_value() {
     local key="$1"
     grep -E "^[[:space:]]*${key}:" "config/settings.yaml" 2>/dev/null \
         | head -1 \
-        | sed -E "s/^[[:space:]]*${key}:[[:space:]]*//; s/^\"//; s/\"[[:space:]]*$//; s/[[:space:]]*$//"
+        | sed -E "s/^[[:space:]]*${key}:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^\"//; s/\"[[:space:]]*$//; s/[[:space:]]*$//"
 }
 
 # Fatal, actionable checks BEFORE we spend a minute loading models only to die.
@@ -79,9 +85,15 @@ preflight() {
     base_url="$(config_value base_url)"
     [ "$base_url" = "null" ] && base_url=""
 
-    if [ "$provider" = "ollama" ] || [ "$provider" = "openai_compatible" ]; then
+    # Is the endpoint loopback (keyless local server) or remote (needs a key)?
+    local is_local=false
+    case "$base_url" in
+        *localhost*|*127.0.0.1*|*0.0.0.0*) is_local=true ;;
+    esac
+
+    if [ "$provider" = "ollama" ] || { [ "$provider" = "openai_compatible" ] && [ "$is_local" = true ]; }; then
         [ -z "$base_url" ] && base_url="http://localhost:11434/v1"
-        echo "  [ok] LLM provider: $provider (local, no OpenAI key needed)."
+        echo "  [ok] LLM provider: $provider (local endpoint: $base_url)."
         # Best-effort reachability check (curl optional).
         if command -v curl >/dev/null 2>&1; then
             if curl -sf -m 2 "${base_url%/v1}/api/tags" >/dev/null 2>&1 \
@@ -91,6 +103,15 @@ preflight() {
                 echo "  [WARNING] Local LLM endpoint not reachable at $base_url"
                 echo "            Start it first, e.g.:  ollama serve   (and: ollama pull <model>)"
             fi
+        fi
+    elif [ "$provider" = "openai_compatible" ]; then
+        # Remote OpenAI-compatible endpoint (e.g. Nebius Token Factory): needs a key.
+        if [ -n "$NEBIUS_API_KEY" ] || [ -n "$OPENAI_API_KEY" ]; then
+            echo "  [ok] LLM: $provider via $base_url (API key set)."
+        else
+            echo "  [ERROR] No API key for remote endpoint: $base_url"
+            echo "          Set NEBIUS_API_KEY in $ENV_FILE (see .env.example)."
+            ok=false
         fi
     elif [ -z "$OPENAI_API_KEY" ]; then
         echo "  [ERROR] OPENAI_API_KEY is not set (llm.provider = $provider)."
@@ -106,24 +127,33 @@ preflight() {
         echo "  [ok] OPENAI_API_KEY is set."
     fi
 
-    # --- TTS reference voice (needed to speak; fails later if missing) ---
-    local voice_sample
-    voice_sample="$(config_value voice_profile_path)"
-    [ -z "$voice_sample" ] && voice_sample="data/samples/agent_voice.wav"
-    if [ ! -f "$voice_sample" ]; then
-        echo "  [WARNING] Voice sample not found: $voice_sample"
-        echo "            TTS will fail without it. Add a clean 6-10s mono WAV there."
+    # --- TTS engine (default: system voice; xtts needs a sample + Coqui TTS) ---
+    local tts_engine
+    tts_engine="$(config_value engine)"
+    [ -z "$tts_engine" ] && tts_engine="system"
+    if [ "$tts_engine" = "xtts" ]; then
+        local voice_sample
+        voice_sample="$(config_value voice_profile_path)"
+        [ -z "$voice_sample" ] && voice_sample="data/samples/agent_voice.wav"
+        if [ ! -f "$voice_sample" ]; then
+            echo "  [WARNING] XTTS voice sample not found: $voice_sample (add a clean 6-10s mono WAV)."
+        else
+            echo "  [ok] XTTS voice sample present: $voice_sample"
+        fi
+        if ! python3 -c "import TTS" 2>/dev/null; then
+            echo "  [WARNING] 'TTS' not importable. Install requirements-voiceclone.txt, or set tts.engine: system."
+        fi
     else
-        echo "  [ok] Voice sample present: $voice_sample"
+        echo "  [ok] TTS engine: system voice."
+        if [ "$(uname)" = "Darwin" ] && ! command -v say >/dev/null 2>&1; then
+            echo "  [WARNING] macOS 'say' not found; system voice will be silent (text reply still shows)."
+        fi
     fi
 
     # --- Core packages ---
     if ! python3 -c "import openai" 2>/dev/null; then
         echo "  [ERROR] Python package 'openai' not importable. Run: pip install -r requirements.txt"
         ok=false
-    fi
-    if ! python3 -c "import TTS" 2>/dev/null; then
-        echo "  [WARNING] Python package 'TTS' not importable. Voice output will not work."
     fi
 
     if [ "$ok" != true ]; then

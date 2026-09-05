@@ -7,6 +7,9 @@ openai>=1.14.0
 faster-whisper>=0.10.0
 sounddevice>=0.4.6
 soundfile>=0.12.1
+# torch 2.2.2 is built against the NumPy 1.x C-API; NumPy 2.x triggers
+# "Failed to initialize NumPy: _ARRAY_API not found" and breaks array<->tensor.
+numpy>=1.26,<2
 
 # torch is pinned <2.3 on purpose: 2.2.2 is the last release with prebuilt
 # x86_64 macOS wheels, and utils/torch_compat.py bridges speechbrain 1.x onto
