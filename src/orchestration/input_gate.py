@@ -13,6 +13,9 @@ class AlwaysOnGate:
     so VAD-based endpointing drives everything (the original behavior).
     """
 
+    # The run loop polls continuously, so capture may sample one chunk and bail.
+    requires_onset_wait = False
+
     async def wait(self) -> bool:
         return True
 
@@ -26,6 +29,10 @@ class PushToTalkGate:
     ``reader`` is injectable so this is testable without a real terminal; it
     must return one input line (or "" at EOF), mirroring ``stdin.readline``.
     """
+
+    # After the keypress, capture must wait for speech to actually begin
+    # (the user speaks a moment after pressing), not bail on the first chunk.
+    requires_onset_wait = True
 
     def __init__(self, prompt: str = "[press Enter to talk] ", reader=None):
         self.prompt = prompt

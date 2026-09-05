@@ -71,10 +71,18 @@ class SessionManager:
         # Gates the *start* of each turn: always-on VAD by default, or
         # push-to-talk. See src/orchestration/input_gate.py.
         self.input_gate = input_gate or AlwaysOnGate()
+        # Push-to-talk gates the turn on a keypress, so after the press we must
+        # WAIT for the user to begin speaking rather than sampling a single
+        # chunk and bailing (which VAD always-on can do because it polls). The
+        # gate declares whether an onset wait is needed.
+        self._wait_for_onset = getattr(self.input_gate, "requires_onset_wait", False)
 
         chunk_ms = (audio_in.config.chunk_size / audio_in.config.rate) * 1000
         self.silence_chunks_needed = max(1, round(silence_duration_ms / chunk_ms))
         self.max_utterance_chunks = max(1, round(max_utterance_ms / chunk_ms))
+        # How long, after a push-to-talk keypress, to wait for speech to begin
+        # before giving up on an empty turn.
+        self.onset_wait_chunks = max(1, round(8000 / chunk_ms))
 
         self.logger = logging.getLogger("session_manager")
         self.on_partial_transcript = on_partial_transcript or (
@@ -146,7 +154,20 @@ class SessionManager:
         else:
             chunk = await asyncio.to_thread(self.audio_in.capture_chunk)
             if not await asyncio.to_thread(self.vad.is_speech, chunk):
-                return None
+                if not self._wait_for_onset:
+                    # Always-on VAD: the run loop polls, so a non-speech chunk
+                    # just ends this poll and the next turn samples again.
+                    return None
+                # Push-to-talk: the user pressed the key but may start speaking a
+                # moment later, so wait (bounded) for speech to actually begin.
+                waited = 0
+                while waited < self.onset_wait_chunks:
+                    chunk = await asyncio.to_thread(self.audio_in.capture_chunk)
+                    if await asyncio.to_thread(self.vad.is_speech, chunk):
+                        break
+                    waited += 1
+                else:
+                    return None  # no speech within the onset window
 
         frames = [chunk]
         silence_chunks = 0
