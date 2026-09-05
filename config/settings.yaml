@@ -122,7 +122,12 @@ memory:
   history_limit: 20          # prior turns loaded back into context on startup
 
 input:
-  mode: "vad"                 # "vad" = always listening; "push_to_talk" = press Enter to talk
+  # "push_to_talk" = the mic only captures after you press Enter, so ambient
+  # room speech (a nearby TV/phone, a roommate) is ignored and there are no
+  # false barge-ins — the reliable choice in a shared/noisy space and for a
+  # clean demo recording. Run it foreground so Enter is read:  ./run.sh --debug
+  # Switch to "vad" for a hands-free "always listening" demo in a quiet room.
+  mode: "push_to_talk"
   ptt_prompt: "[press Enter to talk] "
 
 session:
