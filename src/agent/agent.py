@@ -111,6 +111,10 @@ class Agent:
             provider=provider,
             max_calls_per_minute=llm_cfg.get("max_calls_per_minute", 30),
             max_tokens_total=llm_cfg.get("max_tokens_budget", 200_000),
+            max_tokens=llm_cfg.get("max_tokens", 1024),
+            # For Nemotron reasoning models this disables chain-of-thought,
+            # cutting per-turn latency from ~50s to ~1s (see config note).
+            system_preamble=llm_cfg.get("system_preamble", "detailed thinking off"),
         )
         # Fail fast: for hosted OpenAI this validates the key; for a local
         # endpoint it confirms the server is reachable -- rather than surfacing

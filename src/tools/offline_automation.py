@@ -72,12 +72,30 @@ def build_automation_tools(controller: AutomationController | None = None) -> li
     return tools
 
 
-def extend_registry_with_automation(registry, controller: AutomationController | None = None):
+def _wire_notes_store(notes_db_path: str) -> None:
+    """Inject a SQLite notes store into automation.notes if not already set.
+
+    The note-taking tools (save_note/list_notes/search_notes) are stateful and
+    need a backend injected at startup; without it they report "no store
+    configured". We use plain SQLite to match this project's other memory.
+    """
+    if not notes_db_path:
+        return
+    from automation import notes as notes_module
+    if getattr(notes_module, "_STORE", None) is None:
+        from src.memory.notes_store import SQLiteNotesStore
+        notes_module.set_store(SQLiteNotesStore(notes_db_path))
+
+
+def extend_registry_with_automation(registry, controller: AutomationController | None = None,
+                                    notes_db_path: str = "data/notes.db"):
     """
     Register every automation tool onto an existing ``ToolRegistry`` (as built
     by ``build_default_registry``), so the voice assistant's built-in tools and
-    the carried-over automation suite share one dispatch surface.
+    the carried-over automation suite share one dispatch surface. Also wires the
+    stateful note-taking store so save_note/list_notes/search_notes work.
     """
+    _wire_notes_store(notes_db_path)
     for tool in build_automation_tools(controller):
         registry.register(tool)
     return registry

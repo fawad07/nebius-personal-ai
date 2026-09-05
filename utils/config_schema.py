@@ -98,6 +98,8 @@ class LLMCfg:
     base_url: str | None = None  # e.g. http://localhost:11434/v1 for ollama
     max_calls_per_minute: int = 30
     max_tokens_budget: int = 200_000
+    max_tokens: int = 1024              # per-response output cap (must fit full structured JSON)
+    system_preamble: str = "detailed thinking off"  # Nemotron: disable chain-of-thought for low latency
 
 
 @dataclass

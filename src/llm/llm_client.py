@@ -109,10 +109,18 @@ class LLMClient:
         provider: str = "openai",
         max_calls_per_minute: int = 30,
         max_tokens_total: int | None = 200_000,
+        max_tokens: int | None = None,
+        system_preamble: str = "",
     ):
         self.model = model
         self.provider = provider
         self.base_url = base_url
+        # Per-response output cap (keeps latency + cost bounded); None = model default.
+        self.max_tokens = max_tokens
+        # Prepended to every system prompt. For NVIDIA Nemotron reasoning models,
+        # "detailed thinking off" disables chain-of-thought — turning ~50s voice
+        # turns into ~1s. Harmless plain text for models that don't recognize it.
+        self.system_preamble = (system_preamble or "").strip()
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if require_key and not self.api_key:
             raise LLMAuthError("OPENAI_API_KEY not set.")
@@ -147,6 +155,16 @@ class LLMClient:
         self.usage_guard.check_budget()
         self.usage_guard.check_and_record_call()
 
+    def _messages(self, system_prompt: str, user_prompt: str) -> list[dict]:
+        """Build the chat messages, prepending the configured system preamble."""
+        system = system_prompt
+        if self.system_preamble:
+            system = f"{self.system_preamble}\n\n{system_prompt}"
+        return [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_prompt},
+        ]
+
     def _complete(self, system_prompt: str, user_prompt: str, json_mode: bool = False) -> str:
         """
         Run one chat completion and return the raw content string. When
@@ -155,11 +173,9 @@ class LLMClient:
         servers), transparently retry without it -- lenient JSON extraction
         downstream still recovers the object.
         """
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-        kwargs = {"model": self.model, "messages": messages}
+        kwargs = {"model": self.model, "messages": self._messages(system_prompt, user_prompt)}
+        if self.max_tokens is not None:
+            kwargs["max_tokens"] = self.max_tokens
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
         try:
@@ -192,15 +208,15 @@ class LLMClient:
         the stream is exhausted.
         """
         self._guard_before_call()
-        stream = self.client.chat.completions.create(
-            model=self.model,
-            stream=True,
-            stream_options={"include_usage": True},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
+        stream_kwargs = {
+            "model": self.model,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+            "messages": self._messages(system_prompt, user_prompt),
+        }
+        if self.max_tokens is not None:
+            stream_kwargs["max_tokens"] = self.max_tokens
+        stream = self.client.chat.completions.create(**stream_kwargs)
         for chunk in stream:
             if chunk.usage:
                 self.usage_guard.record_usage(chunk.usage.total_tokens)

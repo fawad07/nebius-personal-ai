@@ -24,6 +24,12 @@ _STORE = None
 MAX_LIST = 50
 
 
+def set_store(store) -> None:
+    """Inject the note-storage backend (see src/memory/notes_store.py)."""
+    global _STORE
+    _STORE = store
+
+
 def _format(notes: list) -> str:
     if not notes:
         return "No notes yet."

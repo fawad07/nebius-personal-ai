@@ -51,6 +51,12 @@ llm:
   #     nvidia/Nemotron-3-Ultra-550b-a55b     (Ultra)
   model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
   base_url: "https://api.tokenfactory.nebius.com/v1/"  # Nebius Token Factory OpenAI-compatible endpoint (confirmed)
+  # Nemotron 3 is a REASONING model: by default it emits a long chain-of-thought
+  # before answering, which made voice turns take ~50s. "detailed thinking off"
+  # disables that (measured ~0.9s vs ~3.5s+ on a bare call; far more on the full
+  # tools prompt). Set to "" to re-enable reasoning (slower, deeper answers).
+  system_preamble: "detailed thinking off"
+  max_tokens: 1024         # per-response cap. Generous ceiling: "thinking off" stops early (~270 tok), so this rarely binds; it must fit the full structured JSON (reply + action) to avoid mid-object truncation.
   max_calls_per_minute: 30
   # Per-SESSION token ceiling (resets on each restart). Moderate: ~25 turns/run
   # — high enough not to interrupt a real conversation, low enough to catch a
