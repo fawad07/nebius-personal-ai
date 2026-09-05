@@ -124,6 +124,11 @@ class Agent:
         self.logger.info(
             f"LLM client initialized: provider={provider} model={model_name} endpoint={target}."
         )
+        # Warm the (serverless) model during startup so its cold-start doesn't
+        # land on the user's first spoken turn. Non-blocking; on by default.
+        if llm_cfg.get("warmup", True):
+            self.llm_client.warmup_async()
+            self.logger.info("Warming up the model in the background (cold-start mitigation).")
 
     def _init_conversation(self):
         mem_cfg = self.config.get("memory", {})

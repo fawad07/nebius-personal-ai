@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import threading
 
 from openai import AuthenticationError, BadRequestError, OpenAI
 
@@ -150,6 +151,27 @@ class LLMClient:
                     f"({self.provider}). Is the server running? Details: {e}"
                 ) from e
             raise LLMAuthError(f"Failed to validate LLM credentials: {e}") from e
+
+    def warmup(self) -> None:
+        """Fire a tiny completion so a serverless model cold-starts NOW.
+
+        Nebius (and most serverless inference) spins a model up on the first
+        request after it goes idle, which can add ~30-60s. Doing that here — at
+        startup — keeps it off the user's first spoken turn. Best-effort: any
+        failure is swallowed (a failed warmup must never block startup).
+        """
+        try:
+            self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": "hi"}],
+                max_tokens=1,
+            )
+        except Exception:
+            pass
+
+    def warmup_async(self) -> None:
+        """Warm the model in a background daemon thread (non-blocking)."""
+        threading.Thread(target=self.warmup, daemon=True).start()
 
     def _guard_before_call(self):
         self.usage_guard.check_budget()

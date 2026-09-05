@@ -56,6 +56,10 @@ llm:
   # disables that (measured ~0.9s vs ~3.5s+ on a bare call; far more on the full
   # tools prompt). Set to "" to re-enable reasoning (slower, deeper answers).
   system_preamble: "detailed thinking off"
+  # First request to a serverless model can cold-start (~30-60s). warmup fires a
+  # tiny completion in the background at startup so that penalty lands during
+  # init (while you read the "listening" message), not on your first sentence.
+  warmup: true
   max_tokens: 1024         # per-response cap. Generous ceiling: "thinking off" stops early (~270 tok), so this rarely binds; it must fit the full structured JSON (reply + action) to avoid mid-object truncation.
   max_calls_per_minute: 30
   # Per-SESSION token ceiling (resets on each restart). Moderate: ~25 turns/run

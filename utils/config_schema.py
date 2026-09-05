@@ -100,6 +100,7 @@ class LLMCfg:
     max_tokens_budget: int = 200_000
     max_tokens: int = 1024              # per-response output cap (must fit full structured JSON)
     system_preamble: str = "detailed thinking off"  # Nemotron: disable chain-of-thought for low latency
+    warmup: bool = True                 # fire a tiny completion at startup to pre-warm a serverless model
 
 
 @dataclass
