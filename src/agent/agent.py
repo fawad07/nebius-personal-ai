@@ -44,7 +44,8 @@ class Agent:
 
     def __init__(self, config_path: str = "config/settings.yaml",
                  audio_in=None, audio_out=None,
-                 on_state_change=None, on_partial_transcript=None, on_reply=None):
+                 on_state_change=None, on_partial_transcript=None, on_reply=None,
+                 input_mode=None):
         setup_logging("config/logging.yaml")
         self.logger = logging.getLogger("agent")
         self.config = load_config(config_path)
@@ -56,6 +57,10 @@ class Agent:
         # the local mic/speakers); default to the local sounddevice streams.
         self._audio_in_override = audio_in
         self._audio_out_override = audio_out
+        # Force an input mode regardless of config. The browser server passes
+        # "vad": push-to-talk reads stdin, which is EOF in a server process and
+        # would end the session immediately (and close the stores).
+        self._input_mode_override = input_mode
         # Optional external observers (e.g. a browser UI).
         self._ext_on_state_change = on_state_change
         self._ext_on_partial_transcript = on_partial_transcript
@@ -291,7 +296,7 @@ class Agent:
             on_state_change = tracer_cb or ext_state
 
         input_cfg = self.config.get("input", {})
-        input_mode = input_cfg.get("mode", "vad")
+        input_mode = self._input_mode_override or input_cfg.get("mode", "vad")
         input_gate = make_input_gate(
             mode=input_mode,
             ptt_prompt=input_cfg.get("ptt_prompt", "[press Enter to talk] "),

@@ -18,12 +18,21 @@ Run:  python -m src.server.voice_server            # mock
       python -m src.server.voice_server --real
 """
 
+import os
+
+# torch and CTranslate2 (faster-whisper's backend) each bundle their own
+# libiomp5.dylib on macOS; loading both aborts with "OMP: Error #15" unless
+# duplicate OpenMP runtimes are allowed, and pinning to one thread keeps them
+# from segfaulting. src/main.py sets these for the CLI; this server is a
+# separate entry point, so it must set them too — before torch is imported.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import argparse
 import asyncio
 import functools
 import logging
 import math
-import os
 import queue
 import struct
 import threading
@@ -129,9 +138,13 @@ class RealRunner:
             on_state_change=self._on_state,
             on_partial_transcript=self._on_partial,
             on_reply=self._on_reply,
+            # Force always-on VAD: push-to-talk reads stdin (EOF in a server),
+            # which would end the session instantly and close the stores.
+            input_mode="vad",
         )
 
-        # Feed inbound browser audio into the mic bridge; stop on disconnect.
+        # Feed inbound browser audio into the mic bridge; handle typed text as a
+        # full turn (skips STT); stop on disconnect.
         def pump():
             while True:
                 kind, payload = self.conn.inbound.get()
@@ -140,10 +153,50 @@ class RealRunner:
                     break
                 if kind == "audio":
                     self._audio_in_queue.put(payload)
+                elif kind == "text":
+                    self._handle_text(agent, payload)
         threading.Thread(target=pump, daemon=True).start()
 
         self.conn.send_json("info", message="pipeline ready")
         agent.run()
+
+    def _handle_text(self, agent, text: str):
+        """Run a typed message as a full turn (no mic/STT): reason with
+        Nemotron + tools, echo the exchange to the UI, and speak the reply.
+
+        Lets a judge test the whole pipeline by typing — no microphone, no room
+        noise — which is why the browser demo is the reliable demo surface.
+        """
+        text = (text or "").strip()
+        if not text:
+            return
+        try:
+            self.conn.send_json("transcript", text=text, final=True)
+            result = agent.conversation_manager.respond_with_mood(
+                text, {"label": "neutral"}, "primary"
+            )
+            reply = result.get("reply", "")
+            self.conn.send_json("reply", text=reply, mood=result.get("mood"))
+            # Persist the exchange so memory carries across turns/sessions.
+            try:
+                mood = {
+                    "mood": result.get("mood"),
+                    "intent": result.get("intent"),
+                    "sensitivity": result.get("sensitivity"),
+                }
+                agent.conversation_manager.update_history(text, reply, mood)
+            except Exception:
+                pass
+            # Speak the reply back to the browser (best-effort).
+            try:
+                audio = agent.tts.synthesize(reply, {"mood": result.get("mood", "neutral")})
+                if audio:
+                    self.conn.send_audio(audio)
+            except Exception:
+                logger.exception("TTS for typed turn failed (reply still sent).")
+        except Exception:
+            logger.exception("Text turn failed.")
+            self.conn.send_json("reply", text="(sorry — that turn failed)")
 
 
 # --------------------------------------------------------------------------- #
