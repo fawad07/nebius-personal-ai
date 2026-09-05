@@ -15,7 +15,7 @@ Last updated: 2026-09-01
 | Nebius/Nemotron wired (config-only) | 🟢 | Key works; endpoint confirmed; spike passed. Default model = Nemotron 3 Nano |
 | Config schema updated | 🟢 | `tools.automation` added; validator accepts new keys, rejects typos |
 | Remote-endpoint key handling | 🟢 | `NEBIUS_API_KEY` → falls back to `OPENAI_API_KEY` |
-| Runs end-to-end (voice + Nebius) | 🔴 | Needs py3.11 venv + real key |
+| Runs end-to-end (voice + Nebius) | 🟢 | Full pipeline boots + a live turn logged; time/files/notes tools fire; ~6s/turn. Voice re-test with fixes pending user mic |
 | Demo URL (browser surface) | 🟡 | Inherited web bridge; needs boot-check + polish |
 | Tests green (merged suites) | 🔴 | Not yet run together |
 | Demo video | 🔴 | Phase 4 |
@@ -45,11 +45,14 @@ Last updated: 2026-09-01
 - [x] Spike passed: Nemotron call via Nebius returns a reply
 
 ### Phase 1 — Prototype (MVP)
-- [ ] `./run.sh` full voice loop with Nebius as the brain
-- [ ] Voice tool routing verified (`save_note`, `list_files`, …)
-- [ ] Memory persists across restart (facts + conversation)
+- [x] `./run.sh` full voice loop with Nebius as the brain (boots, one live turn logged)
+- [x] Tool routing verified via Nebius (`get_current_time`, `list_files`, `save_note`/`list_notes`)
+- [x] Notes persist (SQLite notes store wired)
+- [x] Latency fixed (reasoning off + max_tokens): ~51s → ~6s/turn
 - [x] `data/workspace/.gitkeep` sandbox exists
-- [ ] Merged pieces smoke-tested together
+- [x] Merged pieces smoke-tested together (34 logic tests pass)
+- [ ] **Voice re-test with fixes** (user mic): confirm ~6s reply + tool by voice
+- [ ] Memory persists across restart (facts + conversation) — verify
 
 ### Phase 2 — Product & Design
 - [ ] Browser demo surface boots & is presentable (state, transcript, tool, reply)
