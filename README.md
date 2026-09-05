@@ -62,16 +62,20 @@ code:
 # config/settings.yaml
 llm:
   provider: "openai_compatible"
-  model: "nvidia/Llama-3_3-Nemotron-Super-49B-v1"   # exact id from the Nebius catalog
-  base_url: "https://api.studio.nebius.com/v1/"      # confirm against your account
+  model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"       # Nemotron 3 Nano — fast/cheap for a voice loop
+  base_url: "https://api.tokenfactory.nebius.com/v1/"  # Nebius Token Factory OpenAI-compatible endpoint
+  system_preamble: "detailed thinking off"             # Nemotron is a reasoning model; this keeps turns ~1s not ~50s
 ```
 
 The API key is read from `NEBIUS_API_KEY` (see `.env.example`). Remote endpoints
 require a key; a local Ollama endpoint stays keyless for offline development.
+Swap `model` to `nvidia/nemotron-3-super-120b-a12b` (Super) or
+`nvidia/Nemotron-3-Ultra-550b-a55b` (Ultra) for deeper reasoning; use `--list`
+in `scripts/nebius_spike.py` to see your account's catalog.
 
-> **⚠️ Confirm before the first run:** the exact Nemotron model id and the
-> Token Factory base URL depend on your Nebius account and the current catalog.
-> The values above are placeholders — verify them in the Nebius console.
+> **Cold start:** the first request to a serverless model can take ~30-60s while
+> it spins up. A background warmup at startup (`llm.warmup`) absorbs this so it
+> doesn't land on your first spoken turn.
 
 ---
 
