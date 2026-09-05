@@ -27,9 +27,15 @@ vad:
   threshold: 0.5
 
 tts:
+  # "system" = OS voice (macOS `say`): reliable, zero heavy deps, judge-proof.
+  # "xtts"   = Coqui XTTS voice cloning (needs the torch/numba/llvmlite install).
+  engine: "system"
+  voice: null            # system engine: a named voice (e.g. "Samantha"); null = OS default
+  base_wpm: 180          # system engine: base speaking rate (words/min); mood scales it
+  sample_rate: 16000
+  # xtts-only (ignored by the system engine):
   model_path: "tts_models/multilingual/multi-dataset/xtts_v2"
   voice_profile_path: "data/samples/agent_voice.wav"
-  sample_rate: 16000
 
 llm:
   # Nebius Token Factory serves an OpenAI-compatible Chat Completions API, so

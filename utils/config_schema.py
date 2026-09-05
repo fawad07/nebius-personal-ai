@@ -83,8 +83,11 @@ class VADCfg:
 
 @dataclass
 class TTSCfg:
-    model_path: str = "tts_models/multilingual/multi-dataset/xtts_v2"
-    voice_profile_path: str = "data/samples/agent_voice.wav"
+    engine: str = "system"              # "system" (macOS say, default) | "xtts" (Coqui voice cloning)
+    voice: str | None = None            # system engine: named OS voice (e.g. "Samantha"); None = default
+    base_wpm: int = 180                 # system engine: base speaking rate (words/min)
+    model_path: str = "tts_models/multilingual/multi-dataset/xtts_v2"  # xtts only
+    voice_profile_path: str = "data/samples/agent_voice.wav"           # xtts only
     sample_rate: int = 16000
 
 

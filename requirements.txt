@@ -1,13 +1,19 @@
+# Core runtime — the full assistant runs on this alone, with the default
+# system TTS engine (macOS `say`). No Coqui-TTS / numba / llvmlite here.
+# For the optional XTTS voice-cloning engine (tts.engine: xtts), also install
+# requirements-voiceclone.txt (needs an LLVM toolchain — see that file).
+
 openai>=1.14.0
-TTS==0.22.0
 faster-whisper>=0.10.0
 sounddevice>=0.4.6
 soundfile>=0.12.1
-# NOTE: TTS==0.22.0 pins torch to 2.2.2. speechbrain 1.x expects the torch>=2.4
-# autocast API (torch.amp.custom_fwd); on 2.2.2 this is bridged by
-# utils/torch_compat.py. A clean alternative is speechbrain<1.0.
-torch>=2.1.0
-torchaudio>=2.1.0
+
+# torch is pinned <2.3 on purpose: 2.2.2 is the last release with prebuilt
+# x86_64 macOS wheels, and utils/torch_compat.py bridges speechbrain 1.x onto
+# it (speechbrain 1.x otherwise expects the torch>=2.4 autocast API). This is
+# the environment the pipeline was written and tested against.
+torch>=2.1.0,<2.3
+torchaudio>=2.1.0,<2.3
 speechbrain>=0.5.14
 transformers==4.36.2
 pyyaml>=6.0.1

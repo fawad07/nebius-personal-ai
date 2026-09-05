@@ -11,7 +11,9 @@ from src.memory.conversation_store import ConversationStore
 from src.memory.fact_store import FactStore
 from src.tools.builtins import build_default_registry
 from src.tools.offline_automation import extend_registry_with_automation
-from src.tts.voice_cloner import VoiceCloner, VoiceLibrary
+# NOTE: XTTS voice cloning (src.tts.voice_cloner / voice_cloning_tts) pulls in
+# Coqui-TTS + numba + llvmlite. It is imported lazily in the `xtts` branches
+# below so the default `system` TTS engine needs none of that toolchain.
 
 from src.audio.stream_config import AudioStreamConfig
 from src.audio.input import AudioInput
@@ -27,7 +29,6 @@ from src.speaker.auto_enrol import AutoEnroll
 from src.security.crypto import EmbeddingCipher, load_or_create_key
 
 from src.ser.emotion_classifier import EmotionClassifier
-from src.tts.voice_cloning_tts import VoiceCloningTTS
 from src.audio.vad import VoiceActivityDetector
 
 from src.orchestration.session_manager import SessionManager
@@ -135,12 +136,15 @@ class Agent:
         if tools_cfg.get("enabled", True):
             self.fact_store = FactStore(db_path=tools_cfg.get("facts_db_path", "data/facts.db"))
 
-            # Voice-cloning tool (registered/consented voices only). The cloner
-            # lazily reuses the TTS engine loaded in _init_tts (called later),
-            # so no second XTTS copy is loaded.
+            # Voice-cloning tool (registered/consented voices only). It reuses
+            # the XTTS engine's model, so it's only available when tts.engine is
+            # "xtts"; with the default system voice there is no clone model and
+            # the tool (and its heavy Coqui/numba imports) are skipped.
             vc_cfg = self.config.get("voice_clone", {})
             cloner = voice_library = None
-            if vc_cfg.get("enabled", True):
+            tts_engine = (self.config.get("tts", {}).get("engine") or "system").lower()
+            if vc_cfg.get("enabled", True) and tts_engine == "xtts":
+                from src.tts.voice_cloner import VoiceCloner, VoiceLibrary
                 voice_library = VoiceLibrary(vc_cfg.get("voices_path", "data/voices"))
                 cloner = VoiceCloner(model_getter=lambda: self.tts.model)
 
@@ -240,9 +244,19 @@ class Agent:
         self.logger.info("Voice activity detector initialized.")
 
     def _init_tts(self):
-        tts_cfg = self.config.get("tts", {})
-        self.tts = VoiceCloningTTS(**tts_cfg)
-        self.logger.info("TTS engine initialized.")
+        tts_cfg = dict(self.config.get("tts", {}))
+        # Default to the dependency-light system voice; `xtts` opts into the
+        # heavy Coqui voice-cloning engine (imported lazily so it isn't required
+        # unless selected).
+        self.tts_engine = (tts_cfg.pop("engine", None) or "system").lower()
+        if self.tts_engine == "xtts":
+            from src.tts.voice_cloning_tts import VoiceCloningTTS
+            self.tts = VoiceCloningTTS(**tts_cfg)
+            self.logger.info("TTS engine initialized: XTTS voice cloning.")
+        else:
+            from src.tts.system_tts import SystemTTS
+            self.tts = SystemTTS(**tts_cfg)
+            self.logger.info("TTS engine initialized: system voice (say).")
 
     def _init_session_manager(self):
         session_cfg = self.config.get("session", {})

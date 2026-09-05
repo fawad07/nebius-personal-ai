@@ -3,7 +3,9 @@
 A **private, voice-driven personal assistant** that listens, recognizes *how*
 you sound, reasons with an **NVIDIA Nemotron open model served on Nebius**, acts
 on your machine through a suite of local tools, remembers you across sessions,
-and replies in a **cloned, mood-matched voice** you can interrupt mid-sentence.
+and replies in a **mood-matched voice** you can interrupt mid-sentence. The
+default voice is the reliable system voice; optional XTTS **voice-cloning** is a
+one-flag upgrade (`tts.engine: xtts`).
 
 Built for the **Nebius x NVIDIA Global AI Hackathon** — *Personal AI* track.
 
@@ -22,7 +24,7 @@ mic → VAD → ┌─ Whisper STT ───────────┐
             ├─ Speaker ID (ECAPA) ─────┤→  Nemotron on Nebius  →  reply + optional tool call
             └─ Emotion (acoustic SER) ─┘        (mood + intent + action, one call)
                                                        │
-        speaker ◄── XTTS voice-clone (mood-matched) ◄──┘
+        speaker ◄── system voice / XTTS clone (mood-matched) ◄──┘
                         ▲
                         └── barge-in: your speech cancels playback
 ```

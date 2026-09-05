@@ -1,0 +1,18 @@
+# OPTIONAL — XTTS voice-cloning engine (tts.engine: xtts).
+#
+# Install ON TOP of requirements.txt only when you want cloned-voice output:
+#     pip install -r requirements.txt -r requirements-voiceclone.txt
+#
+# ⚠️ Coqui-TTS drags in numba → llvmlite, which builds from source and needs an
+# LLVM toolchain. On macOS this commonly fails ("Failed building wheel for
+# llvmlite"). If you need it:
+#   1) brew install llvm@14
+#   2) export LLVM_CONFIG="$(brew --prefix llvm@14)/bin/llvm-config"
+#   3) pip install -r requirements-voiceclone.txt
+# TTS==0.22.0 also pins torch to 2.2.2 (already satisfied by requirements.txt's
+# torch<2.3 constraint).
+#
+# The default system TTS engine needs none of this and is the recommended path
+# for a reliable demo; switch engines with tts.engine in config/settings.yaml.
+
+TTS==0.22.0

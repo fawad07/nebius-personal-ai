@@ -1,5 +1,4 @@
 import numpy as np
-import librosa
 
 from exceptions.model_err import FeatureExtractionError, EmotionClassificationError
 
@@ -42,37 +41,70 @@ class EmotionClassifier:
 
     def extract_features(self, audio_bytes: bytes) -> dict:
         """
-        Extract MFCCs, pitch, energy, and other features from audio.
-        Returns a dictionary of features.
+        Extract the arousal features the classifier uses — mean pitch, pitch
+        variability, and energy — from raw audio. Pitch is estimated with a
+        numpy FFT-autocorrelation method (no librosa/numba/llvmlite), keeping
+        the emotion stage dependency-light and reliable.
         """
         try:
             audio_array = self._bytes_to_float32(audio_bytes)
 
-            mfcc = librosa.feature.mfcc(
-                y=audio_array,
-                sr=self.sample_rate,
-                n_mfcc=13
-            )
-
-            pitches, magnitudes = librosa.piptrack(
-                y=audio_array,
-                sr=self.sample_rate
-            )
-            voiced_pitches = pitches[pitches > 0]
-            pitch = float(np.mean(voiced_pitches)) if voiced_pitches.size > 0 else 0.0
-            pitch_std = float(np.std(voiced_pitches)) if voiced_pitches.size > 0 else 0.0
-
-            energy = np.sum(audio_array ** 2) / len(audio_array) if len(audio_array) > 0 else 0.0
+            pitch, pitch_std = self._estimate_pitch(audio_array)
+            energy = float(np.sum(audio_array ** 2) / len(audio_array)) if len(audio_array) > 0 else 0.0
 
             return {
-                "mfcc": mfcc,
                 "pitch": pitch,
                 "pitch_std": pitch_std,
-                "energy": float(energy),
+                "energy": energy,
             }
 
         except Exception as e:
             raise FeatureExtractionError(f"Failed to extract SER features: {e}") from e
+
+    def _estimate_pitch(self, audio_array: np.ndarray,
+                        frame_length: int = 2048, hop_length: int = 512,
+                        fmin: float = 80.0, fmax: float = 400.0,
+                        voicing_threshold: float = 0.3) -> tuple[float, float]:
+        """
+        Estimate mean and std of the fundamental frequency over voiced frames
+        via per-frame autocorrelation (computed through the FFT). Returns
+        ``(0.0, 0.0)`` when the clip is too short or has no voiced frames —
+        mirroring the previous librosa.piptrack-based behaviour.
+        """
+        n = int(audio_array.size)
+        if n == 0:
+            return 0.0, 0.0
+        frame_length = min(frame_length, n)
+        sr = self.sample_rate
+        min_lag = max(1, int(sr / fmax))
+        max_lag = min(frame_length - 1, int(sr / fmin))
+        if max_lag <= min_lag:
+            return 0.0, 0.0
+
+        nfft = 1 << int(np.ceil(np.log2(2 * frame_length - 1)))
+        pitches = []
+        for start in range(0, n - frame_length + 1, hop_length):
+            frame = audio_array[start:start + frame_length].astype(np.float64)
+            frame = frame - frame.mean()
+            corr0 = float(np.dot(frame, frame))
+            if corr0 <= 1e-8:  # near-silent frame → unvoiced
+                continue
+            spec = np.fft.rfft(frame, nfft)
+            corr = np.fft.irfft(spec * np.conj(spec), nfft)[:max_lag + 1]
+            segment = corr[min_lag:max_lag + 1]
+            if segment.size == 0:
+                continue
+            peak_idx = int(np.argmax(segment))
+            if segment[peak_idx] / corr0 < voicing_threshold:  # weak periodicity → unvoiced
+                continue
+            freq = sr / (min_lag + peak_idx)
+            if fmin <= freq <= fmax:
+                pitches.append(freq)
+
+        if not pitches:
+            return 0.0, 0.0
+        arr = np.asarray(pitches, dtype=np.float64)
+        return float(arr.mean()), float(arr.std())
 
     def classify(self, audio_bytes: bytes) -> dict:
         """
