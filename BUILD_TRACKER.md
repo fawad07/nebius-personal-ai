@@ -16,7 +16,7 @@ Last updated: 2026-09-01
 | Config schema updated | 🟢 | `tools.automation` added; validator accepts new keys, rejects typos |
 | Remote-endpoint key handling | 🟢 | `NEBIUS_API_KEY` → falls back to `OPENAI_API_KEY` |
 | Runs end-to-end (voice + Nebius) | 🟢 | Full pipeline boots + a live turn logged; time/files/notes tools fire; ~6s/turn. Voice re-test with fixes pending user mic |
-| Demo URL (browser surface) | 🟡 | Inherited web bridge; needs boot-check + polish |
+| Demo URL (browser surface) | 🟢 local | Runs (`voice_server --real`); text+voice UI, tools + memory verified in-browser. Needs public hosting (Phase 3) |
 | Tests green (merged suites) | 🔴 | Not yet run together |
 | Demo video | 🔴 | Phase 4 |
 | Repo public + license | 🟢 MIT / 🔴 push | Push before submission |
@@ -55,10 +55,13 @@ Last updated: 2026-09-01
 - [ ] Memory persists across restart (facts + conversation) — verify
 
 ### Phase 2 — Product & Design
-- [ ] Browser demo surface boots & is presentable (state, transcript, tool, reply)
+- [x] Browser demo surface boots & is presentable (state, transcript, speaker/emotion/mood, tool, reply)
+- [x] Text input wired to the real Agent (judge-testable without a mic)
+- [x] Tools + memory verified in-browser (get_current_time, save_note→list_notes across turns)
 - [ ] Persona / reusable-skills tuning
 - [ ] **Tavily** wired into `web_search` (real runtime call → $3k bonus)
 - [ ] Impact narrative written + shown in demo
+- [ ] Voice-in via browser mic verified (quiet env / headset)
 
 ### Phase 3 — Hardening / Production
 - [ ] `pytest` green across merged suites
