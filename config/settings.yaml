@@ -5,7 +5,12 @@ audio:
   device_index: null
 
 stt:
-  model_path: "medium"
+  # "base" is the sweet spot for a real-time CPU voice loop: ~1.3s to transcribe
+  # a short clip vs ~12s for "medium" (which, under the app's concurrent
+  # speaker-ID/emotion/barge-in load + OMP_NUM_THREADS=1, ballooned to ~40-50s
+  # and dominated per-turn latency). Use "tiny" for even faster, "small"/"medium"
+  # for higher accuracy if you have GPU or can tolerate the latency.
+  model_path: "base"
   language: "en"
   use_gpu: false
 
