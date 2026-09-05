@@ -52,7 +52,15 @@ class STTService:
             segments, _ = self.model.transcribe(
                 audio_array,
                 language=self.language,
-                beam_size=beam_size
+                beam_size=beam_size,
+                # Anti-hallucination: Whisper invents plausible phrases ("thank
+                # you", "he's here") on silence/noise/echo. vad_filter strips
+                # non-speech first; condition_on_previous_text=False stops a
+                # garbage transcript from seeding the next; temperature=0 keeps
+                # it from sampling filler.
+                vad_filter=True,
+                condition_on_previous_text=False,
+                temperature=0.0,
             )
 
             text = "".join(seg.text for seg in segments).strip()
