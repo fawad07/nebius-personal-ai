@@ -175,6 +175,19 @@ class Agent:
             if tools_cfg.get("automation", True):
                 extend_registry_with_automation(tools)
 
+            # Web search via Tavily — the one tool that leaves the machine.
+            # Registered only when a key is present, so it degrades gracefully.
+            search_cfg = self.config.get("search", {})
+            if search_cfg.get("enabled", True):
+                tavily_key = os.getenv("TAVILY_API_KEY")
+                if tavily_key:
+                    from src.tools.web_search import build_web_search_tool
+                    tools.register(build_web_search_tool(
+                        tavily_key, max_results=search_cfg.get("max_results", 5)))
+                    self.logger.info("Web search (Tavily) tool enabled.")
+                else:
+                    self.logger.info("Web search disabled: TAVILY_API_KEY not set.")
+
             self.logger.info(f"Tools enabled: {tools.names()}")
 
         self.conversation_manager = ConversationManager(

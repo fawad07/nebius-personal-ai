@@ -105,6 +105,11 @@ tools:
   facts_db_path: "data/facts.db"  # gitignored; stores remembered personal facts
   automation: true           # graft the offline_assistant automation suite (files/notes/system/activity/code-check)
 
+search:
+  enabled: true              # expose the web_search tool; needs TAVILY_API_KEY in .env
+  provider: "tavily"         # LLM-oriented search API (hackathon "Best Use of Tavily" bonus)
+  max_results: 5
+
 voice_clone:
   enabled: true                    # expose the synthesize_in_voice tool (registered voices only)
   voices_path: "data/voices"       # consented reference voices (register via scripts/clone_voice.py)

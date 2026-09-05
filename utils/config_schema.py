@@ -131,6 +131,13 @@ class ToolsCfg:
 
 
 @dataclass
+class SearchCfg:
+    enabled: bool = True         # expose the web_search tool (needs TAVILY_API_KEY)
+    provider: str = "tavily"     # only "tavily" today
+    max_results: int = 5
+
+
+@dataclass
 class VoiceCloneCfg:
     enabled: bool = True                       # expose the synthesize_in_voice tool
     voices_path: str = "data/voices"           # registered, consented reference voices
@@ -174,6 +181,7 @@ _SECTIONS = {
     "memory": MemoryCfg,
     "metrics": MetricsCfg,
     "tools": ToolsCfg,
+    "search": SearchCfg,
     "voice_clone": VoiceCloneCfg,
     "privacy": PrivacyCfg,
     "input": InputCfg,
@@ -194,6 +202,7 @@ class AppConfig:
     memory: MemoryCfg
     metrics: MetricsCfg
     tools: ToolsCfg
+    search: SearchCfg
     voice_clone: VoiceCloneCfg
     privacy: PrivacyCfg
     input: InputCfg
