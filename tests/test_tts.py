@@ -1,6 +1,12 @@
 from unittest.mock import patch
 
 import numpy as np
+import pytest
+
+# XTTS voice cloning is an optional extra (Coqui TTS + librosa). Skip this whole
+# module when those aren't installed instead of erroring at collection.
+pytest.importorskip("TTS")
+pytest.importorskip("librosa")
 
 from src.tts.voice_cloning_tts import VoiceCloningTTS
 

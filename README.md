@@ -42,12 +42,18 @@ provider-agnostic tool layer (see `src/tools/offline_automation.py`):
 | `list_files` / `tree` / `read_file` | Read anywhere in the project |
 | `write_file` / `delete_file` | Write/delete — sandboxed to `data/workspace/` |
 | `save_note` / `list_notes` / `search_notes` | Personal notes |
+| `web_search` | Search the web via the **Tavily** API (runtime call) |
 | `system_info` | Machine status (read-only) |
 | `activity_report` | Markdown summary of the assistant's recent activity |
 | `check_code` | Validate a Python snippet |
 
 Plus the voice agent's built-ins: `get_current_time`, `remember_fact` /
 `recall_facts`, and `synthesize_in_voice` (registered/consented voices only).
+
+**Other services:** [Tavily](https://tavily.com) powers `web_search` (a real
+runtime call to the Tavily API, enabled when `TAVILY_API_KEY` is set). The
+hosted demo (`webapp/`) exposes a curated, public-safe subset of these tools
+(time, memory, notes, web search).
 
 ---
 
