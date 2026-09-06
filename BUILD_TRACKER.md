@@ -59,7 +59,7 @@ Last updated: 2026-09-01
 - [x] Text input wired to the real Agent (judge-testable without a mic)
 - [x] Tools + memory verified in-browser (get_current_time, save_note→list_notes across turns)
 - [ ] Persona / reusable-skills tuning
-- [ ] **Tavily** wired into `web_search` (real runtime call → $3k bonus)
+- [x] **Tavily** wired into `web_search` (real runtime call verified in-browser → $3k bonus)
 - [ ] Impact narrative written + shown in demo
 - [ ] Voice-in via browser mic verified (quiet env / headset)
 
