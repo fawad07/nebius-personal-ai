@@ -16,7 +16,7 @@ Last updated: 2026-09-01
 | Config schema updated | 🟢 | `tools.automation` added; validator accepts new keys, rejects typos |
 | Remote-endpoint key handling | 🟢 | `NEBIUS_API_KEY` → falls back to `OPENAI_API_KEY` |
 | Runs end-to-end (voice + Nebius) | 🟢 | Full pipeline boots + a live turn logged; time/files/notes tools fire; ~6s/turn. Voice re-test with fixes pending user mic |
-| Demo URL (browser surface) | 🟢 local | Runs (`voice_server --real`); text+voice UI, tools + memory verified in-browser. Needs public hosting (Phase 3) |
+| Demo URL (browser surface) | 🟢 built | Two surfaces: heavy local voice (`voice_server --real`) + lightweight hosted webapp (torch-free, browser voice). Hosted app verified locally; public deploy = user's HF account |
 | Tests green (merged suites) | 🔴 | Not yet run together |
 | Demo video | 🔴 | Phase 4 |
 | Repo public + license | 🟢 MIT / 🔴 push | Push before submission |
@@ -64,11 +64,14 @@ Last updated: 2026-09-01
 - [ ] Voice-in via browser mic verified (quiet env / headset)
 
 ### Phase 3 — Hardening / Production
+- [x] Lightweight hosted webapp built (torch-free; FastAPI + browser voice)
+- [x] Hosted app verified in-browser (time tool + Tavily + per-session memory)
+- [x] Dockerfile + .dockerignore (keeps .env/heavy files out) + DEPLOY.md
+- [ ] **Deploy to Hugging Face Spaces** (user's HF account: create Space, add 2 secrets, push)
+- [ ] Push public code repo (GitHub) for judging
 - [ ] `pytest` green across merged suites
 - [ ] Graceful handling of Nebius timeout / rate-limit / bad key
-- [ ] Demo URL deployed publicly (Nebius Serverless Endpoint on-theme)
-- [ ] Clean-machine install works from README alone
-- [ ] No secrets committed; `.env.example` complete; MIT visible in About
+- [ ] Set Nebius account spend limit before sharing the URL
 
 ### Phase 4 — Submission Assets
 - [ ] Demo video (<3 min, public YouTube, no copyrighted music)
