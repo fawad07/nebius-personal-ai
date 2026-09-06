@@ -1,0 +1,8 @@
+# Lightweight hosted demo (webapp/) — the torch-free reasoning core only.
+# No torch / faster-whisper / speechbrain: voice happens in the browser.
+openai>=1.14.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+requests>=2.31.0
+pyyaml>=6.0.1

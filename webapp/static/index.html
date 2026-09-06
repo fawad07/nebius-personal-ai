@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nebius Personal AI</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --panel2:#1e2237; --line:#2a2f4a;
+    --text:#e7e9f2; --muted:#9aa0be; --accent:#5cc8c2; --accent2:#7c83ff;
+    --user:#233047; --bot:#1b2036;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, #1a1f3a 0%, var(--bg) 55%);
+       color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       min-height:100vh}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  h1{font-size:1.15rem;margin:0;letter-spacing:.2px}
+  h1 .sub{color:var(--muted);font-weight:500;font-size:.8rem;margin-left:8px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+         border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:var(--panel)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+        box-shadow:0 10px 40px rgba(0,0,0,.35);margin-top:14px}
+  .log{padding:18px;min-height:340px;max-height:56vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  .empty{color:var(--muted);text-align:center;margin:auto;max-width:52ch}
+  .empty b{color:var(--text)}
+  .row{display:flex;flex-direction:column;gap:3px;max-width:86%}
+  .row.user{align-self:flex-end;align-items:flex-end}
+  .row.bot{align-self:flex-start;align-items:flex-start}
+  .who{font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .bubble{padding:10px 13px;border-radius:13px;white-space:pre-wrap;word-wrap:break-word}
+  .user .bubble{background:var(--user);border:1px solid #2c3c58;border-bottom-right-radius:4px}
+  .bot .bubble{background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .bot.think .bubble{color:var(--muted)}
+  .bar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--panel2)}
+  input[type=text]{flex:1;font:inherit;color:var(--text);background:#12162a;border:1px solid var(--line);
+       border-radius:11px;padding:11px 13px}
+  input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  button{font:inherit;font-weight:600;border:1px solid var(--line);border-radius:11px;padding:0 15px;
+         background:var(--panel);color:var(--text);cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  button.mic{background:var(--accent);border-color:var(--accent);color:#062b2a;min-width:46px;font-size:1.05rem}
+  button.mic.rec{background:#ff5d6c;border-color:#ff5d6c;color:#fff;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;
+        color:var(--muted);font-size:.78rem;flex-wrap:wrap}
+  .foot label{display:flex;align-items:center;gap:6px;cursor:pointer}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:.78rem;color:var(--muted);border:1px dashed var(--line);border-radius:999px;
+        padding:5px 10px;background:transparent;cursor:pointer}
+  .chip:hover{border-color:var(--accent);color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Nebius Personal AI <span class="sub">Personal AI · Nemotron on Nebius</span></h1>
+    <div class="badges">
+      <span class="badge">Nemotron</span><span class="badge">Nebius</span>
+      <span class="badge" id="moodBadge">mood —</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="log" id="log">
+      <div class="empty" id="empty">
+        <p><b>Your private assistant.</b> It reasons with an NVIDIA Nemotron model on
+        Nebius, remembers what you tell it, takes notes, and searches the web.</p>
+        <p>Type below, or tap 🎙 to speak. It replies out loud.</p>
+      </div>
+    </div>
+    <form class="bar" id="form" autocomplete="off">
+      <button type="button" class="mic" id="mic" title="Speak">🎙</button>
+      <input type="text" id="msg" placeholder="Ask me something, or say 'take a note…' / 'search the web for…'" aria-label="message" />
+      <button type="submit" class="primary">Send</button>
+    </form>
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip">What can you do?</button>
+    <button class="chip">Take a note: buy oat milk</button>
+    <button class="chip">What are my notes?</button>
+    <button class="chip">Search the web for the tallest building in the world</button>
+    <button class="chip">Remember that my favourite colour is teal</button>
+  </div>
+
+  <div class="foot">
+    <label><input type="checkbox" id="speak" checked /> Speak replies</label>
+    <span id="status">ready</span>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let sessionId = localStorage.getItem("npai_sid") || null;
+  let busy = false;
+
+  function addBubble(who, text, cls){
+    $("empty")?.remove();
+    const row = document.createElement("div");
+    row.className = "row " + who + (cls ? " " + cls : "");
+    row.innerHTML = `<div class="who">${who === "user" ? "you" : "assistant"}</div>`;
+    const b = document.createElement("div");
+    b.className = "bubble"; b.textContent = text;
+    row.appendChild(b);
+    $("log").appendChild(row);
+    $("log").scrollTop = $("log").scrollHeight;
+    return b;
+  }
+
+  function speak(text){
+    if(!$("speak").checked || !("speechSynthesis" in window)) return;
+    try{ speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.03; u.pitch = 1.0; speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  async function send(text){
+    text = (text||"").trim();
+    if(!text || busy) return;
+    busy = true; $("status").textContent = "thinking…";
+    addBubble("user", text);
+    $("msg").value = "";
+    const thinking = addBubble("bot", "…", "think");
+    try{
+      const res = await fetch("/chat", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ message:text, session_id:sessionId })
+      });
+      const data = await res.json();
+      sessionId = data.session_id; localStorage.setItem("npai_sid", sessionId);
+      thinking.parentElement.classList.remove("think");
+      thinking.textContent = data.reply || "(no reply)";
+      if(data.mood) $("moodBadge").textContent = "mood " + data.mood;
+      speak(data.reply || "");
+    }catch(e){
+      thinking.parentElement.classList.remove("think");
+      thinking.textContent = "(connection error — try again)";
+    }finally{
+      busy = false; $("status").textContent = "ready"; $("msg").focus();
+    }
+  }
+
+  $("form").addEventListener("submit", e => { e.preventDefault(); send($("msg").value); });
+  $("chips").addEventListener("click", e => {
+    if(e.target.classList.contains("chip")) send(e.target.textContent);
+  });
+
+  // --- Voice input via the Web Speech API (Chrome/Edge) ---
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SR){
+    const rec = new SR();
+    rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
+    let recording = false;
+    $("mic").addEventListener("click", () => {
+      if(recording){ rec.stop(); return; }
+      try{ rec.start(); }catch(e){}
+    });
+    rec.onstart = () => { recording = true; $("mic").classList.add("rec"); $("status").textContent = "listening…"; };
+    rec.onend = () => { recording = false; $("mic").classList.remove("rec"); if(!busy) $("status").textContent = "ready"; };
+    rec.onerror = () => { recording = false; $("mic").classList.remove("rec"); };
+    rec.onresult = e => { const t = e.results[0][0].transcript; if(t) send(t); };
+  } else {
+    $("mic").disabled = true; $("mic").title = "Voice input needs Chrome or Edge";
+    $("mic").style.opacity = .5;
+  }
+</script>
+</body>
+</html>

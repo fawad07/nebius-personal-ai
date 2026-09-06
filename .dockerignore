@@ -1,0 +1,28 @@
+# Keep the image small and — critically — keep secrets and heavy/local files out.
+# Secrets: NEVER bake .env into the image (keys go in as Space secrets instead).
+.env
+.env.*
+!.env.example
+
+# Virtualenvs / caches
+.venv/
+venv/
+.venv-test/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local runtime data & logs (the container creates its own data/)
+data/
+logs/
+*.log
+
+# Heavy model weights (the hosted webapp doesn't use them — browser does voice)
+models/
+
+# Repo/OS cruft
+.git/
+.github/
+.DS_Store

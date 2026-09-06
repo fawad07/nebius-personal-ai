@@ -44,6 +44,10 @@ class ToolRegistry:
     def has(self, name: str) -> bool:
         return name in self._tools
 
+    def get(self, name: str):
+        """Return the Tool registered under this name, or None."""
+        return self._tools.get(name)
+
     def describe(self) -> str:
         """Render the tool list for the system prompt."""
         return "\n".join(
