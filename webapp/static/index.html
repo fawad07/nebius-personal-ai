@@ -111,11 +111,35 @@
     return b;
   }
 
+  // Pick the most natural available voice. Chrome ships "Google US English"
+  // (smooth, neural-ish); macOS may have "Enhanced"/"Premium" voices; otherwise
+  // fall back to Samantha or the default. Cached once voices load.
+  let _voice = null;
+  function pickVoice(){
+    const vs = (window.speechSynthesis.getVoices() || []).filter(v => /^en(-|_)/i.test(v.lang));
+    const score = v => {
+      const n = v.name.toLowerCase();
+      if(n.includes("google")) return 5;                       // Chrome, very smooth
+      if(n.includes("premium")) return 4;
+      if(n.includes("enhanced") || n.includes("(siri")) return 3;
+      if(n.includes("samantha") || n.includes("ava") || n.includes("zoe")) return 2;
+      return 1;
+    };
+    vs.sort((a,b) => score(b) - score(a));
+    return vs[0] || null;
+  }
+  if("speechSynthesis" in window){
+    _voice = pickVoice();
+    window.speechSynthesis.onvoiceschanged = () => { _voice = pickVoice(); };
+  }
+
   function speak(text){
     if(!$("speak").checked || !("speechSynthesis" in window)) return;
     try{ speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.03; u.pitch = 1.0; speechSynthesis.speak(u);
+      if(_voice) u.voice = _voice;
+      // Slightly slower + natural pitch reads warmer and less clipped.
+      u.rate = 0.98; u.pitch = 1.02; speechSynthesis.speak(u);
     }catch(e){}
   }
 
