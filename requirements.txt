@@ -1,27 +1,9 @@
-# Core runtime — the full assistant runs on this alone, with the default
-# system TTS engine (macOS `say`). No Coqui-TTS / numba / llvmlite here.
-# For the optional XTTS voice-cloning engine (tts.engine: xtts), also install
-# requirements-voiceclone.txt (needs an LLVM toolchain — see that file).
-
+# Hosted Gradio demo (Hugging Face Space) — the torch-free reasoning core.
+# NVIDIA Nemotron on Nebius + tools + memory + Tavily. Voice is in the video,
+# not this hands-on demo, so no torch/whisper/tts here (fast, small build).
+gradio>=4.44
 openai>=1.14.0
-faster-whisper>=0.10.0
-sounddevice>=0.4.6
-soundfile>=0.12.1
-# torch 2.2.2 is built against the NumPy 1.x C-API; NumPy 2.x triggers
-# "Failed to initialize NumPy: _ARRAY_API not found" and breaks array<->tensor.
-numpy>=1.26,<2
-
-# torch is pinned <2.3 on purpose: 2.2.2 is the last release with prebuilt
-# x86_64 macOS wheels, and utils/torch_compat.py bridges speechbrain 1.x onto
-# it (speechbrain 1.x otherwise expects the torch>=2.4 autocast API). This is
-# the environment the pipeline was written and tested against.
-torch>=2.1.0,<2.3
-torchaudio>=2.1.0,<2.3
-speechbrain>=0.5.14
-transformers==4.36.2
-pyyaml>=6.0.1
-rich>=13.7.0
-websockets>=12,<14
-onnxruntime>=1.17.0
 requests>=2.31.0
-pytest>=8.0.0
+pyyaml>=6.0.1
+
+# The full local voice pipeline uses requirements-voice.txt instead.

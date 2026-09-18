@@ -152,7 +152,7 @@ preflight() {
 
     # --- Core packages ---
     if ! python3 -c "import openai" 2>/dev/null; then
-        echo "  [ERROR] Python package 'openai' not importable. Run: pip install -r requirements.txt"
+        echo "  [ERROR] Python package 'openai' not importable. Run: pip install -r requirements-voice.txt"
         ok=false
     fi
 

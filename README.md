@@ -3,8 +3,8 @@ title: Nebius Personal AI
 emoji: 🎙️
 colorFrom: indigo
 colorTo: blue
-sdk: docker
-app_port: 7860
+sdk: gradio
+app_file: app.py
 pinned: false
 license: mit
 ---
@@ -98,11 +98,19 @@ in `scripts/nebius_spike.py` to see your account's catalog.
 
 ## Setup
 
+**Hosted demo (Gradio — what runs on the Space, torch-free):**
 ```bash
-cd ~/Desktop/nebius-personal-ai
-python3.11 -m venv .venv && source .venv/bin/activate   # TTS/torch need Python ≤3.11
-pip install -r requirements.txt
-cp .env.example .env        # paste your NEBIUS_API_KEY
+cd nebius-personal-ai
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt          # light: gradio + reasoning core
+cp .env.example .env                      # paste NEBIUS_API_KEY (+ TAVILY_API_KEY)
+python app.py                             # → http://localhost:7860
+```
+
+**Full local voice pipeline (Whisper/speaker-ID/emotion/TTS):**
+```bash
+python3.11 -m venv .venv && source .venv/bin/activate   # torch/TTS need Python ≤3.11
+pip install -r requirements-voice.txt
 ./run.sh
 ```
 

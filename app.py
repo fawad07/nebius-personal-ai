@@ -1,0 +1,75 @@
+"""
+app.py — Gradio entry point for the Hugging Face Space (free SDK).
+
+Wraps the exact same torch-free reasoning core the local app uses
+(`webapp.agent_core.AgentCore`): NVIDIA Nemotron on Nebius Token Factory, plus
+memory, notes, and Tavily web search. Voice is not needed here — this is the
+hands-on demo judges can type into; the video shows the full voice pipeline.
+
+Secrets (NEBIUS_API_KEY, TAVILY_API_KEY) come from the Space's secret store.
+"""
+
+from __future__ import annotations
+
+import gradio as gr
+
+from webapp.agent_core import AgentCore
+
+core = AgentCore()
+
+INTRO = (
+    "Hi — I'm a private personal assistant that reasons with an **NVIDIA Nemotron** "
+    "model on **Nebius Token Factory**. I remember facts you tell me, take and list "
+    "notes, and search the web with **Tavily**. Try an example below, or just ask."
+)
+
+EXAMPLES = [
+    "What's the tallest building in the world?",
+    "Remember that my favourite colour is teal",
+    "What's my favourite colour?",
+    "Take a note: buy oat milk",
+    "What are my notes?",
+]
+
+
+def _submit(message, chat):
+    message = (message or "").strip()
+    if not message:
+        return "", chat or []
+    return "", (chat or []) + [{"role": "user", "content": message}]
+
+
+def _reply(chat, request: gr.Request = None):
+    # session_hash isolates each visitor's conversation memory.
+    session = getattr(request, "session_hash", None) or "public"
+    user_msg = chat[-1]["content"]
+    try:
+        answer = core.respond(session, user_msg).get("reply", "")
+    except Exception as e:  # never crash the UI mid-demo
+        answer = f"(sorry — that turn failed: {e})"
+    return chat + [{"role": "assistant", "content": answer}]
+
+
+with gr.Blocks(title="Nebius Personal AI") as demo:
+    gr.Markdown(
+        "# 🎙️ Nebius Personal AI\n"
+        "Personal AI · **Nemotron on Nebius** · memory · notes · Tavily web search"
+    )
+    chatbot = gr.Chatbot(value=[{"role": "assistant", "content": INTRO}], height=440)
+    with gr.Row():
+        msg = gr.Textbox(
+            placeholder="Ask me something, or say 'take a note: …' / 'search the web for …'",
+            show_label=False, autofocus=True, scale=8, container=False,
+        )
+        send = gr.Button("Send", variant="primary", scale=1)
+    gr.Examples(examples=EXAMPLES, inputs=msg, label="Try one")
+
+    # Submit on Enter or the Send button.
+    for trigger in (msg.submit, send.click):
+        trigger(_submit, [msg, chatbot], [msg, chatbot], queue=False).then(
+            _reply, chatbot, chatbot
+        )
+
+
+if __name__ == "__main__":
+    demo.launch(server_name="0.0.0.0", server_port=7860)
