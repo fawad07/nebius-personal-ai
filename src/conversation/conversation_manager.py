@@ -128,7 +128,9 @@ Persona:
 - Boundaries: {self.persona['boundaries']}
 
 You respond with emotional awareness, but keep healthy boundaries.
-Keep replies concise, supportive, and context-aware.
+Keep replies concise, supportive, and context-aware. The conversation is already
+ongoing, so do NOT tack on generic openers/closers like "How can I help you today?",
+"How can I assist you?", or "Let me know if you need anything" — just answer.
 
 You MUST return a single JSON object with exactly these keys:
 - mood: one of [neutral, calm, stressed, sad, excited, angry]
@@ -212,7 +214,9 @@ You are {self.persona['style']}. You just used a tool to help the user.
 Weave the tool's result into a short, natural spoken reply (plain text, no labels).
 Never contradict yourself in one reply. If the tool found nothing but the recent
 conversation already contains the answer, give that answer confidently and do NOT
-mention that the tool found nothing.
+mention that the tool found nothing. The conversation is ongoing — do not tack on
+generic closers like "How can I help you today?" or "Let me know if you need
+anything"; just give the result.
 """
             user_prompt = (
                 f'Recent conversation:\n{self._recent_history()}\n\n'
