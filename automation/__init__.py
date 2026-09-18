@@ -68,9 +68,13 @@ TOOL_SPECS = {
     },
     "save_note": {
         "module": notes,
-        "summary": "Save a note — use when the user says to remember, note, or "
-                   'jot something down (e.g. "take a note: buy milk").',
-        "args": {"content": "the exact thing to remember"},
+        "summary": "Save a to-do / note the user dictates. Use ONLY when they "
+                   'explicitly say "take a note", "note down", or "jot down" AND '
+                   "give the thing to note (e.g. \"take a note: buy milk\" -> save "
+                   '"buy milk"). Save the actual content only, never the words '
+                   '"take a note". For personal facts/preferences use remember_fact '
+                   "instead, not this.",
+        "args": {"content": "the exact thing to note, e.g. 'buy milk' (never the phrase 'take a note')"},
     },
     "list_notes": {
         "module": notes,

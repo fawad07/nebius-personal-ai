@@ -99,12 +99,24 @@ User says: "{text}"
         action_key_line = ""
         if self.tools is not None:
             tools_block = f"""
-You can optionally use a tool to answer. Available tools:
+You can use a tool to answer. Available tools:
 {self.tools.describe()}
 
 To use one, set "action" to {{"name": <tool>, "args": {{...}}}}; otherwise set "action" to null.
-Only use a tool when it genuinely helps (e.g. the user asks the time, or asks you
-to remember or recall something). Do not invent tools or arguments.
+
+IMPORTANT tool rules — follow exactly:
+- When the user shares a personal fact/preference ("remember…", "my favourite X is…",
+  "I like…"), you MUST call remember_fact. Do not just say "got it" without the tool.
+- When the user asks what you know/remember about them ("what's my favourite…?"),
+  you MUST call recall_facts and answer from its result — never guess or say you
+  don't know without calling it first.
+- When the user says "take a note / note down" WITH content, call save_note with the
+  actual content only (e.g. "buy milk"), never the words "take a note". If they say
+  "take a note" with no content yet, ask what to note (action null).
+- "what are my notes?" -> call list_notes.
+- You have NO reminder, alarm, or scheduling ability. Never claim to have set a
+  reminder. If asked, save it as a note instead and say you noted it.
+Do not invent tools or arguments.
 """
             action_key_line = "\n- action: a tool request object, or null (see tools below)"
 

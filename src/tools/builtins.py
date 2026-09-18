@@ -81,7 +81,13 @@ def build_default_registry(fact_store=None, cloner=None, voice_library=None,
         tools.append(
             Tool(
                 name="remember_fact",
-                description="Store a personal fact the user shares so it can be recalled later.",
+                description=(
+                    "Store a personal FACT or preference about the user — name, "
+                    "favourites, likes/dislikes, details of their life. Use whenever "
+                    'they say "remember that…", "my favourite … is …", "I like…". '
+                    "This is the ONLY tool for personal facts (do NOT use save_note "
+                    "for these)."
+                ),
                 params='{"subject": str, "fact": str}',
                 func=_make_remember(fact_store),
             )
@@ -89,7 +95,11 @@ def build_default_registry(fact_store=None, cloner=None, voice_library=None,
         tools.append(
             Tool(
                 name="recall_facts",
-                description="Retrieve previously remembered facts, optionally filtered by subject.",
+                description=(
+                    "Retrieve facts stored with remember_fact. Use whenever the user "
+                    'asks what you remember about them (e.g. "what\'s my favourite '
+                    'colour?"). Always call this before saying you don\'t know.'
+                ),
                 params='{"subject": str (optional)}',
                 func=_make_recall(fact_store),
             )
