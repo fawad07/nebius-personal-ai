@@ -139,7 +139,7 @@ Honest notes from actually building on these during the hackathon.
 
 ## Try it
 - **Demo URL:** _(paste your Hugging Face Space URL here)_
-- **Repository:** _(paste your public GitHub URL here)_
+- **Repository:** https://github.com/fawad07/nebius-personal-ai
 - **Video:** https://youtu.be/3PZBpnp4G68
 
 Setup and architecture are in the repository `README.md`.
