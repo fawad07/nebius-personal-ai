@@ -140,6 +140,6 @@ Honest notes from actually building on these during the hackathon.
 ## Try it
 - **Demo URL:** _(paste your Hugging Face Space URL here)_
 - **Repository:** _(paste your public GitHub URL here)_
-- **Video:** _(paste the YouTube link here)_
+- **Video:** https://youtu.be/3PZBpnp4G68
 
 Setup and architecture are in the repository `README.md`.
