@@ -46,22 +46,20 @@ EXAMPLES = [
 ]
 
 
-def _submit(message, chat):
-    message = (message or "").strip()
+def _respond(message, chat, request: gr.Request = None):
+    """One handler: take the textbox string directly (never re-read it from the
+    chatbot, which Gradio 6 may hand back as a list), answer, append both."""
+    message = str(message or "").strip()
     if not message:
         return "", chat or []
-    return "", (chat or []) + [{"role": "user", "content": message}]
-
-
-def _reply(chat, request: gr.Request = None):
-    # session_hash isolates each visitor's conversation memory.
+    chat = (chat or []) + [{"role": "user", "content": message}]
     session = getattr(request, "session_hash", None) or "public"
-    user_msg = chat[-1]["content"]
     try:
-        answer = core.respond(session, user_msg).get("reply", "")
+        answer = core.respond(session, message).get("reply", "")
     except Exception as e:  # never crash the UI mid-demo
         answer = f"(sorry — that turn failed: {e})"
-    return chat + [{"role": "assistant", "content": answer}]
+    chat = chat + [{"role": "assistant", "content": answer}]
+    return "", chat
 
 
 with gr.Blocks(title="Nebius Personal AI") as demo:
@@ -80,9 +78,7 @@ with gr.Blocks(title="Nebius Personal AI") as demo:
 
     # Submit on Enter or the Send button.
     for trigger in (msg.submit, send.click):
-        trigger(_submit, [msg, chatbot], [msg, chatbot], queue=False).then(
-            _reply, chatbot, chatbot
-        )
+        trigger(_respond, [msg, chatbot], [msg, chatbot])
 
 
 if __name__ == "__main__":
