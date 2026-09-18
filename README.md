@@ -1,3 +1,14 @@
+---
+title: Nebius Personal AI
+emoji: 🎙️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # Nebius Personal AI
 
 A **private, voice-driven personal assistant** that listens, recognizes *how*
