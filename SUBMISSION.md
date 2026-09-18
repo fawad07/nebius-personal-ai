@@ -138,7 +138,7 @@ Honest notes from actually building on these during the hackathon.
 ---
 
 ## Try it
-- **Demo URL:** _(paste your Hugging Face Space URL here)_
+- **Demo URL:** https://huggingface.co/spaces/fawad07/nebius-personal-ai
 - **Repository:** https://github.com/fawad07/nebius-personal-ai
 - **Video:** https://youtu.be/3PZBpnp4G68
 
