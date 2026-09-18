@@ -15,6 +15,20 @@ import gradio as gr
 
 from webapp.agent_core import AgentCore
 
+# Hugging Face ZeroGPU (the only free hardware for Gradio Spaces) refuses to
+# start unless it detects at least one @spaces.GPU function. This app does all
+# inference via the remote Nebius API and never needs a GPU, so this is a tiny
+# placeholder that satisfies the runtime check. Guarded so local runs (where the
+# `spaces` package isn't installed) are unaffected.
+try:
+    import spaces
+
+    @spaces.GPU(duration=1)
+    def _zerogpu_placeholder():  # never called; existence satisfies ZeroGPU
+        return True
+except Exception:
+    pass
+
 core = AgentCore()
 
 INTRO = (

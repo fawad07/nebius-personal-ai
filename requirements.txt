@@ -2,6 +2,7 @@
 # NVIDIA Nemotron on Nebius + tools + memory + Tavily. Voice is in the video,
 # not this hands-on demo, so no torch/whisper/tts here (fast, small build).
 gradio>=4.44
+spaces>=0.28          # required by HF ZeroGPU (the free Gradio hardware)
 openai>=1.14.0
 requests>=2.31.0
 pyyaml>=6.0.1
