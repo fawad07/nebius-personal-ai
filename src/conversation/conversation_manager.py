@@ -210,8 +210,12 @@ User says: "{text}"
             system_prompt = f"""
 You are {self.persona['style']}. You just used a tool to help the user.
 Weave the tool's result into a short, natural spoken reply (plain text, no labels).
+Never contradict yourself in one reply. If the tool found nothing but the recent
+conversation already contains the answer, give that answer confidently and do NOT
+mention that the tool found nothing.
 """
             user_prompt = (
+                f'Recent conversation:\n{self._recent_history()}\n\n'
                 f'User said: "{text}"\n'
                 f'Tool "{name}" returned: {tool_result}\n'
                 "Reply to the user naturally and briefly."
